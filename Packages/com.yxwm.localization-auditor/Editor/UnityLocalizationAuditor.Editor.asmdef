@@ -1,7 +1,11 @@
 {
   "name": "UnityLocalizationAuditor.Editor",
   "rootNamespace": "Yxwm.LocalizationAuditor",
-  "references": [],
+  "references": [
+    "Unity.Localization",
+    "Unity.Localization.Editor",
+    "Unity.Addressables.Editor"
+  ],
   "includePlatforms": [
     "Editor"
   ],
