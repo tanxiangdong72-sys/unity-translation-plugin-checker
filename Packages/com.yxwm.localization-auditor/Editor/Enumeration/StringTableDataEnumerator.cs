@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEditor.Localization;
 using UnityEngine.Localization.Tables;
@@ -10,6 +11,12 @@ namespace Yxwm.LocalizationAuditor
 {
     internal static class StringTableDataEnumerator
     {
+        // Unity 的公开 Tables 属性会清理 broken 引用；这里保留原始列表以实现真正只读的审计读取。
+        private static readonly FieldInfo TablesField =
+            typeof(LocalizationTableCollection).GetField(
+                "m_Tables",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
         public static IReadOnlyList<StringTableCollectionSnapshot> Enumerate()
         {
             // Unity 返回的集合顺序不作为产品契约，这里统一按名称和资源路径排序。
@@ -34,34 +41,77 @@ namespace Yxwm.LocalizationAuditor
                 throw new ArgumentNullException(nameof(collection));
             }
 
-            var sharedEntries = collection.SharedData == null
+            var sharedData = collection.SharedData;
+            var collectionName = sharedData == null
+                ? string.Empty
+                : sharedData.TableCollectionName;
+            var sharedEntries = sharedData == null
                 ? Enumerable.Empty<SharedTableEntrySnapshot>()
-                : collection.SharedData.Entries
+                : sharedData.Entries
                     .Where(entry => entry != null)
                     .Select(entry => new SharedTableEntrySnapshot(entry.Id, entry.Key));
 
-            var tables = collection.StringTables
-                .Where(table => table != null)
-                .Select(table => CreateTableSnapshot(collection, table))
+            var tables = GetStringTablesWithoutMutation(collection)
+                .Select(table => CreateTableSnapshot(sharedData, table))
                 .ToList();
 
             return new StringTableCollectionSnapshot(
-                collection.TableCollectionName,
+                collectionName,
                 AssetDatabase.GetAssetPath(collection),
-                collection.SharedData == null
+                sharedData == null
                     ? string.Empty
-                    : AssetDatabase.GetAssetPath(collection.SharedData),
+                    : AssetDatabase.GetAssetPath(sharedData),
                 sharedEntries,
                 tables);
         }
 
+        private static IEnumerable<StringTable> GetStringTablesWithoutMutation(
+            StringTableCollection collection)
+        {
+            if (TablesField == null)
+            {
+                throw new MissingFieldException(
+                    typeof(LocalizationTableCollection).FullName,
+                    "m_Tables");
+            }
+
+            var tableReferences = TablesField.GetValue(collection) as System.Collections.IEnumerable;
+            if (tableReferences == null)
+            {
+                yield break;
+            }
+
+            // 只读取 LazyLoadReference 的状态和 asset，不调用会修改集合的公开属性。
+            foreach (var tableReference in tableReferences)
+            {
+                if (tableReference == null)
+                {
+                    continue;
+                }
+
+                var referenceType = tableReference.GetType();
+                var isBrokenProperty = referenceType.GetProperty("isBroken");
+                if (isBrokenProperty?.GetValue(tableReference) is bool isBroken && isBroken)
+                {
+                    continue;
+                }
+
+                var assetProperty = referenceType.GetProperty("asset");
+                var table = assetProperty?.GetValue(tableReference) as StringTable;
+                if (table != null)
+                {
+                    yield return table;
+                }
+            }
+        }
+
         private static StringTableSnapshot CreateTableSnapshot(
-            StringTableCollection collection,
+            SharedTableData sharedData,
             StringTable table)
         {
-            var sharedEntries = collection.SharedData == null
+            var sharedEntries = sharedData == null
                 ? Enumerable.Empty<SharedTableData.SharedTableEntry>()
-                : collection.SharedData.Entries.Where(entry => entry != null);
+                : sharedData.Entries.Where(entry => entry != null);
 
             // 每个表都按共享 Key 生成完整行；表中不存在的 Entry 保留为 Exists=false。
             var entries = sharedEntries.Select(sharedEntry =>
