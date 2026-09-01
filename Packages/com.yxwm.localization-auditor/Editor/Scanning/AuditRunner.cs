@@ -6,12 +6,14 @@ using System.Threading;
 
 namespace Yxwm.LocalizationAuditor
 {
+    // Runner 串行执行规则，保证同一输入始终得到相同的执行和报告顺序。
     public sealed class AuditRunner
     {
         public IReadOnlyList<IAuditRule> Rules { get; }
 
         public AuditRunner(IEnumerable<IAuditRule> rules)
         {
+            // 构造阶段校验并固定规则集合，运行期间不再接受结构变化。
             var ruleList = rules == null
                 ? new List<IAuditRule>()
                 : new List<IAuditRule>(rules);
@@ -50,6 +52,7 @@ namespace Yxwm.LocalizationAuditor
             CancellationToken cancellationToken = default(CancellationToken),
             Action<AuditProgress> progress = null)
         {
+            // 每次运行都创建独立的上下文、问题和诊断集合，避免跨次扫描污染状态。
             if (request == null)
             {
                 throw new ArgumentNullException(nameof(request));
@@ -106,6 +109,7 @@ namespace Yxwm.LocalizationAuditor
                     }
                     catch (OperationCanceledException)
                     {
+                        // 只有外部确实请求取消时才结束扫描；其他异常仍按规则错误记录。
                         if (cancellationToken.IsCancellationRequested)
                         {
                             status = AuditRunStatus.Cancelled;
@@ -120,6 +124,7 @@ namespace Yxwm.LocalizationAuditor
                     }
                     catch (Exception exception)
                     {
+                        // 单条规则失败不能阻断后续规则，错误进入诊断列表。
                         AddRuleExceptionDiagnostic(diagnostics, rule, exception);
                     }
 
@@ -155,6 +160,7 @@ namespace Yxwm.LocalizationAuditor
             int totalRuleCount,
             string currentRuleId)
         {
+            // UI 回调属于外围代码，回调失败不能反向破坏审计流程。
             if (progress == null)
             {
                 return;
