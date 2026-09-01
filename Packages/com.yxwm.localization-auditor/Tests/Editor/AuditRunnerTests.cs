@@ -5,6 +5,7 @@ using NUnit.Framework;
 
 namespace Yxwm.LocalizationAuditor.Tests
 {
+    // 使用可控的测试规则验证 Runner 的顺序、取消和异常隔离契约。
     public sealed class AuditRunnerTests
     {
         [Test]
