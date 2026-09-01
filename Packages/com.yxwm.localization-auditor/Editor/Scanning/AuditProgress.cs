@@ -2,6 +2,7 @@ using System;
 
 namespace Yxwm.LocalizationAuditor
 {
+    // 进度对象描述当前规则和已完成规则数，供 Editor UI 安全展示。
     public sealed class AuditProgress
     {
         public int CompletedRuleCount { get; }
