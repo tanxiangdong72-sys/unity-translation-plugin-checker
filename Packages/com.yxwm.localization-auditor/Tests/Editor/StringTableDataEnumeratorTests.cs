@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEditor.Localization;
 
 namespace Yxwm.LocalizationAuditor.Tests
 {
@@ -123,6 +124,39 @@ namespace Yxwm.LocalizationAuditor.Tests
 
             var after = File.ReadAllText(settingsPath);
             Assert.That(after, Is.EqualTo(before));
+        }
+
+        [Test]
+        public void EnumerateDoesNotRepairBrokenTableReferences()
+        {
+            using (var fixture = LocalizationFixtureFactory.Create(
+                       RootDirectory,
+                       CollectionName,
+                       "en"))
+            {
+                var collection = fixture.StringTableCollection;
+                var collectionPath = AssetDatabase.GetAssetPath(collection);
+                var tablePath = AssetDatabase.GetAssetPath(fixture.GetTable("en"));
+
+                AssetDatabase.DeleteAsset(tablePath);
+                AssetDatabase.Refresh();
+                var serializedAfterAssetDeletion = File.ReadAllText(collectionPath);
+                var tableCountBeforeEnumeration = new SerializedObject(collection)
+                    .FindProperty("m_Tables")
+                    .arraySize;
+
+                StringTableDataEnumerator.Enumerate();
+
+                Assert.That(
+                    File.ReadAllText(collectionPath),
+                    Is.EqualTo(serializedAfterAssetDeletion));
+                var tableCountAfterEnumeration = new SerializedObject(collection)
+                    .FindProperty("m_Tables")
+                    .arraySize;
+                Assert.That(
+                    tableCountAfterEnumeration,
+                    Is.EqualTo(tableCountBeforeEnumeration));
+            }
         }
 
         private static void CleanupFixtureRoot()
