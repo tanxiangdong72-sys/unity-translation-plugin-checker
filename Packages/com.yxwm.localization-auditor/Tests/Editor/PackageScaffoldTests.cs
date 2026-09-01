@@ -4,6 +4,7 @@ using Yxwm.LocalizationAuditor;
 
 namespace Yxwm.LocalizationAuditor.Tests
 {
+    // 这些测试只确认 UPM 包边界可被 Unity 发现并加载，暂不验证审计功能。
     public sealed class PackageScaffoldTests
     {
         [Test]
