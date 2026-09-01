@@ -5,6 +5,7 @@ using System.Linq;
 
 namespace Yxwm.LocalizationAuditor
 {
+    // 报告是一次扫描的不可变结果快照，供 UI、测试和后续导出复用。
     public sealed class AuditReport
     {
         public DateTimeOffset StartedAtUtc { get; }
@@ -15,6 +16,7 @@ namespace Yxwm.LocalizationAuditor
         public IReadOnlyList<AuditDiagnostic> Diagnostics { get; }
         public TimeSpan Duration => FinishedAtUtc - StartedAtUtc;
 
+        // 忽略的问题保留在 Issues 中，但不计入活动问题数量。
         public int ErrorCount => CountIssues(AuditSeverity.Error, AuditIssueState.Open);
         public int WarningCount => CountIssues(AuditSeverity.Warning, AuditIssueState.Open);
         public int NotVerifiedCount => CountIssues(AuditSeverity.NotVerified, AuditIssueState.Open);
@@ -66,6 +68,7 @@ namespace Yxwm.LocalizationAuditor
         private static IReadOnlyList<AuditIssue> SnapshotIssues(
             IEnumerable<AuditIssue> issues)
         {
+            // 复制并排序问题集合，避免规则完成顺序影响报告。
             var snapshot = issues == null
                 ? new List<AuditIssue>()
                 : new List<AuditIssue>(issues);
@@ -84,6 +87,7 @@ namespace Yxwm.LocalizationAuditor
         private static IReadOnlyList<AuditDiagnostic> SnapshotDiagnostics(
             IEnumerable<AuditDiagnostic> diagnostics)
         {
+            // 诊断同样复制并排序，使日志和 UI 展示可重复。
             var snapshot = diagnostics == null
                 ? new List<AuditDiagnostic>()
                 : new List<AuditDiagnostic>(diagnostics);
