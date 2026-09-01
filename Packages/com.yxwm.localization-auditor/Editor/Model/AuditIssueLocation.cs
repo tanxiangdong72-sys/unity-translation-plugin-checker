@@ -1,7 +1,9 @@
 namespace Yxwm.LocalizationAuditor
 {
+    // 统一保存报告展示和 Unity 资源定位所需的上下文信息。
     public sealed class AuditIssueLocation
     {
+        // 没有关联资源时使用共享的空定位对象，避免到处判空。
         public static AuditIssueLocation Empty { get; } = new AuditIssueLocation();
 
         public string LocaleCode { get; }
