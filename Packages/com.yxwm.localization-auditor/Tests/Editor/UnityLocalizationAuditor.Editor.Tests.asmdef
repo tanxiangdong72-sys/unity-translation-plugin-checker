@@ -1,0 +1,21 @@
+{
+  "name": "UnityLocalizationAuditor.Editor.Tests",
+  "rootNamespace": "Yxwm.LocalizationAuditor.Tests",
+  "references": [
+    "UnityLocalizationAuditor.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
