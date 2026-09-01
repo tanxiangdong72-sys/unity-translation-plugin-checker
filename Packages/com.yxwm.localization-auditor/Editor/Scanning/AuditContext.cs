@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace Yxwm.LocalizationAuditor
 {
+    // 上下文只暴露请求的只读视图，规则不能通过它修改扫描配置。
     public sealed class AuditContext
     {
         public AuditRequest Request { get; }
