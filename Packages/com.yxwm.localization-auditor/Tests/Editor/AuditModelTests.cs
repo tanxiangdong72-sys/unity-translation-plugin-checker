@@ -4,6 +4,7 @@ using NUnit.Framework;
 
 namespace Yxwm.LocalizationAuditor.Tests
 {
+    // 这些测试锁定模型的快照、校验和确定性排序契约。
     public sealed class AuditModelTests
     {
         [Test]
