@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace Yxwm.LocalizationAuditor
 {
+    // 使用固定字段顺序比较问题，确保输入枚举顺序不会改变报告结果。
     public sealed class AuditIssueComparer : IComparer<AuditIssue>
     {
         public static AuditIssueComparer Instance { get; } = new AuditIssueComparer();
@@ -13,6 +14,7 @@ namespace Yxwm.LocalizationAuditor
 
         public int Compare(AuditIssue left, AuditIssue right)
         {
+            // 先按严重级别和状态，再按规则及资源定位字段排序。
             if (ReferenceEquals(left, right))
             {
                 return 0;
