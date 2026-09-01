@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace Yxwm.LocalizationAuditor
 {
+    // 问题对象创建后不可变，规则可以安全地把它交给 Runner 汇总。
     public sealed class AuditIssue
     {
         public string RuleId { get; }
@@ -22,6 +23,7 @@ namespace Yxwm.LocalizationAuditor
             IEnumerable<int> missingCodePoints = null,
             AuditIssueState state = AuditIssueState.Open)
         {
+            // 在问题进入报告前拒绝无效的规则元数据和状态。
             if (string.IsNullOrWhiteSpace(ruleId))
             {
                 throw new ArgumentException("Rule id is required.", nameof(ruleId));
@@ -53,6 +55,7 @@ namespace Yxwm.LocalizationAuditor
 
         private static IReadOnlyList<int> SnapshotCodePoints(IEnumerable<int> codePoints)
         {
+            // 码点去重并排序，保证重复扫描时报告顺序稳定。
             var distinctCodePoints = new HashSet<int>();
             if (codePoints != null)
             {
