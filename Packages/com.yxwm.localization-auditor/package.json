@@ -1,0 +1,15 @@
+{
+  "name": "com.yxwm.localization-auditor",
+  "displayName": "Unity Localization Auditor",
+  "version": "0.1.0",
+  "unity": "6000.0",
+  "description": "Editor-only deterministic checks for Unity Localization projects.",
+  "keywords": [
+    "localization",
+    "editor",
+    "quality-assurance"
+  ],
+  "dependencies": {
+    "com.unity.localization": "1.5.12"
+  }
+}
