@@ -7,6 +7,7 @@ using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.TestTools;
 
 namespace Yxwm.LocalizationAuditor.Tests
@@ -129,36 +130,27 @@ namespace Yxwm.LocalizationAuditor.Tests
         }
     }
 
-    // 保证窗口在无报告和长文本状态下真正进入私有 OnGUI。
+    // 验证 headless 安全路径，并在图形 Editor 中保留真实 IMGUI 绘制覆盖。
     public sealed class LocalizationAuditorWindowReportSmokeTests
     {
-        [UnityTest]
-        public IEnumerator WindowOnGuiDoesNotThrowWithoutReportWhenInvokedThroughReflection()
+        [Test]
+        public void WindowOnGuiDoesNotThrowWithoutReportWhenInvokedThroughReflection()
         {
             var window = ScriptableObject.CreateInstance<LocalizationAuditorWindow>();
-            ReflectionInvokerWindow guiHost = null;
             try
             {
+                InvokeOnEnable(window);
                 SetWindowState(window, new LocalizationAuditorWindowState());
-                guiHost = CreateGuiHost(() => InvokeOnGui(window));
-
-                yield return null;
-
-                Assert.That(guiHost.Invoked, Is.True);
-                Assert.That(
-                    guiHost.InvocationException,
-                    Is.Null,
-                    guiHost.InvocationException?.ToString());
+                Assert.DoesNotThrow(() => InvokeOnGui(window));
             }
             finally
             {
-                UnityEngine.Object.DestroyImmediate(guiHost);
                 UnityEngine.Object.DestroyImmediate(window);
             }
         }
 
-        [UnityTest]
-        public IEnumerator WindowOnGuiDoesNotThrowForLongTextReportWhenInvokedThroughReflection()
+        [Test]
+        public void WindowOnGuiDoesNotThrowForLongTextReportWhenInvokedThroughReflection()
         {
             var report = new AuditReport(
                 new DateTimeOffset(2026, 9, 2, 0, 0, 0, TimeSpan.Zero),
@@ -191,11 +183,71 @@ namespace Yxwm.LocalizationAuditor.Tests
             state.RunAudit();
 
             var window = ScriptableObject.CreateInstance<LocalizationAuditorWindow>();
-            ReflectionInvokerWindow guiHost = null;
             try
             {
+                InvokeOnEnable(window);
                 SetWindowState(window, state);
-                guiHost = CreateGuiHost(() => InvokeOnGui(window));
+                Assert.DoesNotThrow(() => InvokeOnGui(window));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(window);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator GraphicsEditorWindowRendersLongReportAndDisabledLocateButton()
+        {
+            if (Application.isBatchMode ||
+                SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
+            {
+                Assert.Ignore(
+                    "Requires a graphics-capable, non-batchmode Unity Editor.");
+            }
+
+            var location = new AuditIssueLocation(
+                assetPath: "Assets/GraphicsSmoke/Missing.prefab",
+                objectPath: "Root/Canvas/Panel/LocalizedLabel");
+            Assert.That(AuditIssueLocator.CanLocate(location), Is.False);
+
+            var report = new AuditReport(
+                new DateTimeOffset(2026, 9, 2, 0, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(2026, 9, 2, 0, 0, 1, TimeSpan.Zero),
+                AuditRunStatus.Completed,
+                1,
+                new[]
+                {
+                    new AuditIssue(
+                        "GRAPHICS_SMOKE",
+                        AuditSeverity.Error,
+                        "A deliberately long graphics smoke message that must render " +
+                        "through the real EditorWindow IMGUI path without throwing.",
+                        location: location)
+                });
+            var state = new LocalizationAuditorWindowState(
+                discoverTargets: _ => new AuditTargetDiscoveryResult(
+                    new[]
+                    {
+                        new AuditTarget(
+                            "Assets/GraphicsSmoke/Missing.prefab",
+                            AuditTargetKind.Prefab)
+                    },
+                    Array.Empty<AuditDiagnostic>()),
+                runAudit: _ => report);
+            state.RefreshTargets(new[] { "Assets" });
+            state.RunAudit();
+
+            var window = ScriptableObject.CreateInstance<LocalizationAuditorWindow>();
+            GraphicsSmokeHostWindow guiHost = null;
+            try
+            {
+                InvokeOnEnable(window);
+                SetWindowState(window, state);
+                guiHost = ScriptableObject.CreateInstance<GraphicsSmokeHostWindow>();
+                guiHost.Invocation = () => InvokeOnGuiMethod(window);
+                guiHost.position = new Rect(0, 0, 640, 480);
+                guiHost.Show();
+                guiHost.Repaint();
 
                 yield return null;
 
@@ -207,28 +259,46 @@ namespace Yxwm.LocalizationAuditor.Tests
             }
             finally
             {
-                UnityEngine.Object.DestroyImmediate(guiHost);
+                if (guiHost != null)
+                {
+                    guiHost.Close();
+                    UnityEngine.Object.DestroyImmediate(guiHost);
+                }
+
                 UnityEngine.Object.DestroyImmediate(window);
             }
         }
 
-        private static ReflectionInvokerWindow CreateGuiHost(Action action)
+        private static void InvokeOnGui(LocalizationAuditorWindow window)
         {
-            var guiHost = ScriptableObject.CreateInstance<ReflectionInvokerWindow>();
-            guiHost.Invocation = action;
-            guiHost.position = new Rect(0, 0, 640, 480);
-            guiHost.Show();
-            guiHost.Repaint();
-            return guiHost;
+            var previousEvent = Event.current;
+            Event.current = new Event { type = EventType.Layout };
+            try
+            {
+                InvokeOnGuiMethod(window);
+            }
+            finally
+            {
+                Event.current = previousEvent;
+            }
         }
 
-        private static void InvokeOnGui(LocalizationAuditorWindow window)
+        private static void InvokeOnGuiMethod(LocalizationAuditorWindow window)
         {
             var onGui = typeof(LocalizationAuditorWindow).GetMethod(
                 "OnGUI",
                 BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(onGui, Is.Not.Null);
             onGui.Invoke(window, null);
+        }
+
+        private static void InvokeOnEnable(LocalizationAuditorWindow window)
+        {
+            var onEnable = typeof(LocalizationAuditorWindow).GetMethod(
+                "OnEnable",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(onEnable, Is.Not.Null);
+            onEnable.Invoke(window, null);
         }
 
         private static void SetWindowState(
@@ -242,13 +312,13 @@ namespace Yxwm.LocalizationAuditor.Tests
             stateField.SetValue(window, state);
         }
 
-        private sealed class ReflectionInvokerWindow : EditorWindow
+        private sealed class GraphicsSmokeHostWindow : EditorWindow
         {
             public Action Invocation { get; set; }
             public Exception InvocationException { get; private set; }
             public bool Invoked { get; private set; }
 
-            public void OnGUI()
+            private void OnGUI()
             {
                 if (Invoked)
                 {
