@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -170,9 +171,10 @@ namespace Yxwm.LocalizationAuditor.Tests
             var scene = default(Scene);
             try
             {
+                var mode = SelectSceneCreationMode();
                 scene = EditorSceneManager.NewScene(
                     NewSceneSetup.EmptyScene,
-                    NewSceneMode.Additive);
+                    mode);
                 Assert.That(
                     EditorSceneManager.SaveScene(scene, path),
                     Is.True,
@@ -188,9 +190,81 @@ namespace Yxwm.LocalizationAuditor.Tests
             {
                 if (scene.IsValid() && scene.isLoaded)
                 {
-                    EditorSceneManager.CloseScene(scene, true);
+                    if (SceneManager.sceneCount == 1)
+                    {
+                        var replacement = EditorSceneManager.NewScene(
+                            NewSceneSetup.EmptyScene,
+                            NewSceneMode.Single);
+                        Assert.That(
+                            replacement.IsValid() && replacement.isLoaded,
+                            Is.True,
+                            "Unity could not replace the last Task13 fixture Scene.");
+                    }
+                    else
+                    {
+                        Assert.That(
+                            EditorSceneManager.CloseScene(scene, true),
+                            Is.True,
+                            "Unity could not close the Task13 fixture Scene.");
+                    }
                 }
             }
+        }
+
+        private static NewSceneMode SelectSceneCreationMode()
+        {
+            var loadedScenes = Enumerable.Range(0, SceneManager.sceneCount)
+                .Select(SceneManager.GetSceneAt)
+                .Where(scene => scene.IsValid() && scene.isLoaded)
+                .ToList();
+            if (loadedScenes.Any(scene => scene.isDirty))
+            {
+                throw new InvalidOperationException(
+                    "Task13 will not discard a dirty loaded Scene.");
+            }
+
+            if (loadedScenes.Any(scene =>
+                    !string.IsNullOrEmpty(scene.path) &&
+                    !scene.isDirty) &&
+                !loadedScenes.Any(scene => string.IsNullOrEmpty(scene.path)))
+            {
+                return NewSceneMode.Additive;
+            }
+
+            if (loadedScenes.Count == 1 &&
+                IsSafeUntitledPlaceholder(loadedScenes[0]))
+            {
+                return NewSceneMode.Single;
+            }
+
+            throw new InvalidOperationException(
+                "Task13 requires a saved clean anchor or a clean empty/default untitled placeholder.");
+        }
+
+        private static bool IsSafeUntitledPlaceholder(Scene scene)
+        {
+            if (!scene.IsValid() || !scene.isLoaded || scene.isDirty)
+            {
+                return false;
+            }
+
+            var roots = scene.GetRootGameObjects();
+            if (roots.Length == 0)
+            {
+                return true;
+            }
+
+            if (roots.Length != 2)
+            {
+                return false;
+            }
+
+            var cameras = roots.Where(root => root.name == "Main Camera").ToArray();
+            var lights = roots.Where(root => root.name == "Directional Light").ToArray();
+            return cameras.Length == 1 &&
+                lights.Length == 1 &&
+                cameras[0].GetComponent<Camera>() != null &&
+                lights[0].GetComponent<Light>() != null;
         }
 
         private static void EnsureFolder(string assetPath)
