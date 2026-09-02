@@ -53,6 +53,15 @@ namespace Yxwm.LocalizationAuditor
         public int NotVerifiedCount => LastReport?.NotVerifiedCount ?? 0;
         public int DiagnosticCount => LastReport?.Diagnostics.Count ?? 0;
 
+        public void SetLocationStatus(AuditLocationResult result)
+        {
+            StatusMessage = result == null
+                ? "Locate failed."
+                : result.Succeeded
+                    ? "Located: " + result.AssetPath + " / " + result.ObjectPath
+                    : "Locate failed: " + result.Message;
+        }
+
         public void RefreshTargets()
         {
             RefreshTargets(new[] { "Assets" });
