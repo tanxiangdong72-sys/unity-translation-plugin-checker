@@ -62,6 +62,30 @@ namespace Yxwm.LocalizationAuditor.Tests
             Assert.That(issue.MissingCodePoints, Is.EqualTo(new[] { 0x41, 0x4E2D }));
         }
 
+        // 回归验证旧六个位置参数的语义不变，并确认新增定位字段可继续使用位置参数传入。
+        [Test]
+        public void AuditIssueLocationPreservesLegacyPositionalArgumentsAndAppendsNewFields()
+        {
+            var location = new AuditIssueLocation(
+                "en",
+                "Strings",
+                "KEY",
+                "Assets/Prefab.prefab",
+                "Root/Label",
+                "Assets/Fonts/English.asset",
+                "UnityEngine.UI.Text",
+                "m_Text");
+
+            Assert.That(location.LocaleCode, Is.EqualTo("en"));
+            Assert.That(location.TableName, Is.EqualTo("Strings"));
+            Assert.That(location.Key, Is.EqualTo("KEY"));
+            Assert.That(location.AssetPath, Is.EqualTo("Assets/Prefab.prefab"));
+            Assert.That(location.ObjectPath, Is.EqualTo("Root/Label"));
+            Assert.That(location.FontAssetPath, Is.EqualTo("Assets/Fonts/English.asset"));
+            Assert.That(location.ComponentType, Is.EqualTo("UnityEngine.UI.Text"));
+            Assert.That(location.PropertyPath, Is.EqualTo("m_Text"));
+        }
+
         [Test]
         public void AuditReportSortsIssuesAndCalculatesCounts()
         {
