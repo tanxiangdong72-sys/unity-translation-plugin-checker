@@ -85,6 +85,18 @@ namespace Yxwm.LocalizationAuditor
                 return comparison;
             }
 
+            comparison = CompareOrdinal(left.ComponentType, right.ComponentType);
+            if (comparison != 0)
+            {
+                return comparison;
+            }
+
+            comparison = CompareOrdinal(left.PropertyPath, right.PropertyPath);
+            if (comparison != 0)
+            {
+                return comparison;
+            }
+
             comparison = CompareOrdinal(left.LocaleCode, right.LocaleCode);
             if (comparison != 0)
             {
