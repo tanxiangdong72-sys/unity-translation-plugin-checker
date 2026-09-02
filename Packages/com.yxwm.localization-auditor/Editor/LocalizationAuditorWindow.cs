@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Yxwm.LocalizationAuditor
 {
@@ -25,6 +26,12 @@ namespace Yxwm.LocalizationAuditor
 
         private void OnGUI()
         {
+            if (Application.isBatchMode &&
+                SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
+            {
+                return;
+            }
+
             if (_state == null)
             {
                 _state = new LocalizationAuditorWindowState();
@@ -126,7 +133,7 @@ namespace Yxwm.LocalizationAuditor
                 (AuditIssueStateFilter)_issueStateFilterIndex);
         }
 
-        private static void DrawIssue(AuditIssue issue)
+        private void DrawIssue(AuditIssue issue)
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField(
@@ -158,6 +165,16 @@ namespace Yxwm.LocalizationAuditor
                 "Property / 属性",
                 propertyPath,
                 EditorStyles.wordWrappedLabel);
+
+            using (new EditorGUI.DisabledScope(!AuditIssueLocator.CanLocate(location)))
+            {
+                if (GUILayout.Button("Locate / 定位"))
+                {
+                    var result = AuditIssueLocator.Locate(location);
+                    _state.SetLocationStatus(result);
+                    Repaint();
+                }
+            }
 
             EditorGUILayout.EndVertical();
         }
