@@ -1,6 +1,5 @@
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace Yxwm.LocalizationAuditor
 {
@@ -26,8 +25,8 @@ namespace Yxwm.LocalizationAuditor
 
         private void OnGUI()
         {
-            if (Application.isBatchMode &&
-                SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
+            // 批处理模式没有可交互的 Editor GUI 上下文，反射烟测也应安全返回。
+            if (Application.isBatchMode)
             {
                 return;
             }
