@@ -132,103 +132,103 @@ namespace Yxwm.LocalizationAuditor.Tests
                 Font("F08", "Configured Font Asset Cannot Load", "en", "Locale mapping points to a missing TMP Font Asset path.", "Report NotVerified with the configured path.", Task20SampleDisposition.Issue, AuditSeverity.NotVerified),
                 Font("F09", "Fallback Cycle", "en", "Root font and fallback font reference each other.", "Report a Warning for the finite-search cycle.", Task20SampleDisposition.Issue, AuditSeverity.Warning),
                 Font("F10", "Multilingual Fallback Chain Covers All Characters", "zh-Hans", "Root font covers Latin and fallback chain covers Chinese and punctuation.", "Produce no TMP font coverage issue.", Task20SampleDisposition.NoIssue, null)
-+            };
-+
-+            samples.AddRange(new[]
-+            {
-+                Boundary("B01", "Runtime Generated Text", "en", "Text is assembled at runtime and never serialized in a Scene or Prefab.", "Manual review required because static extraction cannot verify it."),
-+                Boundary("B02", "Custom Smart Formatter", "en", "A project-specific Smart Formatter generates text outside the standard table value.", "Manual review required because formatter semantics are outside the MVP."),
-+                Boundary("B03", "Third-Party Localization Framework", "zh-Hans", "Text is owned by a third-party localization package rather than Unity Localization.", "Manual review required because the supported framework is different."),
-+                Boundary("B04", "Runtime Created String Table", "en", "The String Table collection is created only during application startup.", "Manual review required because the Editor cannot inspect runtime-only assets."),
-+                Boundary("B05", "Encrypted Translation Payload", "zh-Hans", "Translations are decrypted into memory and are not present as inspectable assets.", "Manual review required because the source payload is unavailable."),
-+                Boundary("B06", "Remote Translation Service", "en", "Localized text arrives from a remote service at runtime.", "Manual review required because network responses are outside static scanning."),
-+                Boundary("B07", "Reflection Created LocalizedString", "zh-Hans", "A LocalizedString component is created and configured through reflection at runtime.", "Manual review required because no serialized reference exists."),
-+                Boundary("B08", "Runtime Only TMP Font", "zh-Hans", "The TMP Font Asset is downloaded and assigned only after entering Play Mode.", "Manual review required because the Editor mapping cannot resolve it."),
-+                Boundary("B09", "Custom Shader Text Rendering", "en", "Characters are rendered by a custom shader without a TMP Font Asset.", "Manual review required because TMP coverage does not apply."),
-+                Boundary("B10", "Unknown Serialized Component", "zh-Hans", "A missing script owns a localized field that Unity cannot deserialize.", "Manual review required because the component contract is unavailable.")
-+            });
-+
-+            return new ReadOnlyCollection<Task20Sample>(samples);
-+        }
-+
-+        private static Task20Sample Error(
-+            string id,
-+            string title,
-+            string ruleId,
-+            string localeCode,
-+            string input,
-+            string expectedBehavior)
-+        {
-+            return new Task20Sample(
-+                id,
-+                Task20SampleCategory.ExpectedError,
-+                title,
-+                ruleId,
-+                localeCode,
-+                input,
-+                expectedBehavior,
-+                Task20SampleDisposition.Issue,
-+                AuditSeverity.Error);
-+        }
-+
-+        private static Task20Sample Clean(
-+            string id,
-+            string title,
-+            string ruleId,
-+            string localeCode,
-+            string input,
-+            string expectedBehavior)
-+        {
-+            return new Task20Sample(
-+                id,
-+                Task20SampleCategory.ExpectedClean,
-+                title,
-+                ruleId,
-+                localeCode,
-+                input,
-+                expectedBehavior,
-+                Task20SampleDisposition.NoIssue,
-+                null);
-+        }
-+
-+        private static Task20Sample Font(
-+            string id,
-+            string title,
-+            string localeCode,
-+            string input,
-+            string expectedBehavior,
-+            Task20SampleDisposition disposition,
-+            AuditSeverity? severity)
-+        {
-+            return new Task20Sample(
-+                id,
-+                Task20SampleCategory.FontCoverage,
-+                title,
-+                TmpFontCoverageRule.RuleId,
-+                localeCode,
-+                input,
-+                expectedBehavior,
-+                disposition,
-+                severity);
-+        }
-+
-+        private static Task20Sample Boundary(
-+            string id,
-+            string title,
-+            string localeCode,
-+            string input,
-+            string expectedBehavior)
-+        {
-+            return new Task20Sample(
-+                id,
-+                Task20SampleCategory.Boundary,
-+                title,
-+                ManualReviewRuleId,
-+                localeCode,
-+                input,
-+                expectedBehavior,
-+                Task20SampleDisposition.ManualReview,
-+                null);
-+        }
-+    }
-+}
+            };
+
+            samples.AddRange(new[]
+            {
+                Boundary("B01", "Runtime Generated Text", "en", "Text is assembled at runtime and never serialized in a Scene or Prefab.", "Manual review required because static extraction cannot verify it."),
+                Boundary("B02", "Custom Smart Formatter", "en", "A project-specific Smart Formatter generates text outside the standard table value.", "Manual review required because formatter semantics are outside the MVP."),
+                Boundary("B03", "Third-Party Localization Framework", "zh-Hans", "Text is owned by a third-party localization package rather than Unity Localization.", "Manual review required because the supported framework is different."),
+                Boundary("B04", "Runtime Created String Table", "en", "The String Table collection is created only during application startup.", "Manual review required because the Editor cannot inspect runtime-only assets."),
+                Boundary("B05", "Encrypted Translation Payload", "zh-Hans", "Translations are decrypted into memory and are not present as inspectable assets.", "Manual review required because the source payload is unavailable."),
+                Boundary("B06", "Remote Translation Service", "en", "Localized text arrives from a remote service at runtime.", "Manual review required because network responses are outside static scanning."),
+                Boundary("B07", "Reflection Created LocalizedString", "zh-Hans", "A LocalizedString component is created and configured through reflection at runtime.", "Manual review required because no serialized reference exists."),
+                Boundary("B08", "Runtime Only TMP Font", "zh-Hans", "The TMP Font Asset is downloaded and assigned only after entering Play Mode.", "Manual review required because the Editor mapping cannot resolve it."),
+                Boundary("B09", "Custom Shader Text Rendering", "en", "Characters are rendered by a custom shader without a TMP Font Asset.", "Manual review required because TMP coverage does not apply."),
+                Boundary("B10", "Unknown Serialized Component", "zh-Hans", "A missing script owns a localized field that Unity cannot deserialize.", "Manual review required because the component contract is unavailable.")
+            });
+
+            return new ReadOnlyCollection<Task20Sample>(samples);
+        }
+
+        private static Task20Sample Error(
+            string id,
+            string title,
+            string ruleId,
+            string localeCode,
+            string input,
+            string expectedBehavior)
+        {
+            return new Task20Sample(
+                id,
+                Task20SampleCategory.ExpectedError,
+                title,
+                ruleId,
+                localeCode,
+                input,
+                expectedBehavior,
+                Task20SampleDisposition.Issue,
+                AuditSeverity.Error);
+        }
+
+        private static Task20Sample Clean(
+            string id,
+            string title,
+            string ruleId,
+            string localeCode,
+            string input,
+            string expectedBehavior)
+        {
+            return new Task20Sample(
+                id,
+                Task20SampleCategory.ExpectedClean,
+                title,
+                ruleId,
+                localeCode,
+                input,
+                expectedBehavior,
+                Task20SampleDisposition.NoIssue,
+                null);
+        }
+
+        private static Task20Sample Font(
+            string id,
+            string title,
+            string localeCode,
+            string input,
+            string expectedBehavior,
+            Task20SampleDisposition disposition,
+            AuditSeverity? severity)
+        {
+            return new Task20Sample(
+                id,
+                Task20SampleCategory.FontCoverage,
+                title,
+                TmpFontCoverageRule.RuleId,
+                localeCode,
+                input,
+                expectedBehavior,
+                disposition,
+                severity);
+        }
+
+        private static Task20Sample Boundary(
+            string id,
+            string title,
+            string localeCode,
+            string input,
+            string expectedBehavior)
+        {
+            return new Task20Sample(
+                id,
+                Task20SampleCategory.Boundary,
+                title,
+                ManualReviewRuleId,
+                localeCode,
+                input,
+                expectedBehavior,
+                Task20SampleDisposition.ManualReview,
+                null);
+        }
+    }
+}
