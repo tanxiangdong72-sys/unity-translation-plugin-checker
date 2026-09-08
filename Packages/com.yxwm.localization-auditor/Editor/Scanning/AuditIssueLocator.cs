@@ -2,6 +2,9 @@ using System;
 using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+#if !UNITY_2021_2_OR_NEWER
+using UnityEditor.Experimental.SceneManagement;
+#endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -109,7 +112,7 @@ namespace Yxwm.LocalizationAuditor
             var originalStage = PrefabStageUtility.GetCurrentPrefabStage();
             var originalStageAssetPath = originalStage == null
                 ? string.Empty
-                : originalStage.assetPath;
+                : GetStageAssetPath(originalStage);
             var isAlreadyInTargetStage = string.Equals(
                 originalStageAssetPath,
                 assetPath,
@@ -120,7 +123,7 @@ namespace Yxwm.LocalizationAuditor
             {
                 var stage = isAlreadyInTargetStage
                     ? originalStage
-                    : PrefabStageUtility.OpenPrefab(assetPath);
+                    : OpenPrefabCompat(assetPath);
                 if (stage == null || stage.prefabContentsRoot == null)
                 {
                     return AuditLocationResult.Failure(
@@ -146,10 +149,44 @@ namespace Yxwm.LocalizationAuditor
                     StageUtility.GoBackToPreviousStage();
                     if (!string.IsNullOrEmpty(originalStageAssetPath))
                     {
-                        PrefabStageUtility.OpenPrefab(originalStageAssetPath);
+                        OpenPrefabCompat(originalStageAssetPath);
                     }
                 }
             }
+        }
+
+        // 旧版 OpenPrefab 不是公开 API；通过 AssetDatabase 打开真实 Prefab Stage。
+        // 不使用 LoadPrefabContents 后立即卸载的临时对象，以免返回已销毁的定位目标。
+        private static PrefabStage OpenPrefabCompat(string assetPath)
+        {
+#if UNITY_2021_2_OR_NEWER
+            return PrefabStageUtility.OpenPrefab(assetPath);
+#else
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+            if (asset == null || !AssetDatabase.OpenAsset(asset))
+            {
+                return null;
+            }
+
+            var stage = PrefabStageUtility.GetCurrentPrefabStage();
+            // 打开被取消或未切换到目标时，不把原来的 Stage 当作定位成功。
+            return string.Equals(GetStageAssetPath(stage), assetPath, StringComparison.Ordinal)
+                ? stage
+                : null;
+#endif
+        }
+
+        private static string GetStageAssetPath(PrefabStage stage)
+        {
+            if (stage == null)
+            {
+                return string.Empty;
+            }
+#if UNITY_2020_1_OR_NEWER
+            return stage.assetPath;
+#else
+            return stage.prefabAssetPath;
+#endif
         }
 
         private static bool IsCurrentTargetPrefabStage(
@@ -159,11 +196,11 @@ namespace Yxwm.LocalizationAuditor
             var currentStage = PrefabStageUtility.GetCurrentPrefabStage();
             return currentStage != null &&
                    string.Equals(
-                       currentStage.assetPath,
+                       GetStageAssetPath(currentStage),
                        targetAssetPath,
                        StringComparison.Ordinal) &&
                    !string.Equals(
-                       currentStage.assetPath,
+                       GetStageAssetPath(currentStage),
                        originalStageAssetPath,
                        StringComparison.Ordinal);
         }
@@ -277,7 +314,7 @@ namespace Yxwm.LocalizationAuditor
             }
 
             return AuditLocationResult.Success(
-                component == null ? gameObject : component,
+                component == null ? (UnityEngine.Object)gameObject : component,
                 assetPath,
                 location.ObjectPath);
         }
