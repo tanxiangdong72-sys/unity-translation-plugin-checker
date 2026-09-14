@@ -26,12 +26,20 @@
 
 上面的固定提交是已验证安装流程的代码基线，不会自动跟随 main 更新。开发跟踪可将 URL 末尾改成 `#main`，更新后仍应检查实际解析的提交。
 
+## 发布准备分支：字体配置（未正式发布）
+最新候选功能位于 `release/asset-store-readiness`，不是上述历史安装基线。试用时将 Git URL 的提交部分改为 `#release/asset-store-readiness`。
+
+窗口操作：**新建配置 → 展开语言字体列表 → 添加条目 → 填 Locale Code → 选择 TMP Font Asset → 保存配置 → 刷新目标 → 运行审计**。例如 `en`、`zh-Hans`，代码必须与项目 Locale 一致。下次可以重新选择保存的配置资源。
+
+候选版在 Windows 的 Unity 6000.0.32f1 / 6000.5.10f1 各完成 179 项 EditMode 测试：178 通过、0 失败、1 图形界面用例跳过。此次验证使用本地 UPM 依赖，不等于 Git 安装或 Asset Store 包验收。
+详见 [包使用说明](Packages/com.yxwm.localization-auditor/README.md) 和 [发布检查清单](Docs/Validation/asset-store-release-candidate.md)。
+
 ## 环境与边界
 - 已有安装/窗口/扫描流程验证环境：**Unity 6000.5.10f1**。
 - 包声明最低 Unity 6000.0，依赖 Localization 1.5.12；声明不代表所有 Unity 6 小版本都通过验证。
 - 老版 Unity 的兼容性工作尚未形成当前 main 的完整支持承诺。
 - 窗口从 Assets 下发现 Scene/Prefab；没有这类目标时不能从窗口启动扫描。
-- 当前窗口尚未提供完整字体映射配置，字体检查可能返回未验证。
+- 发布准备分支已增加可保存的语言→TMP 字体配置；未配置语言仍返回 NotVerified。
 - 定位主要面向带对象路径的 Scene/Prefab 问题；翻译表问题不支持通过该按钮直接定位。
 - 静态检查不能保证发现运行时动态生成的所有问题。
 - 0 个问题不等于所有能力都验证通过。

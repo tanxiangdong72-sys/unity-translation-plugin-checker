@@ -10,6 +10,8 @@ namespace Yxwm.LocalizationAuditor
         private int _severityFilterIndex;
         private int _issueStateFilterIndex;
         private Vector2 _issueScrollPosition;
+        [SerializeField] private AuditFontProfile _fontProfile;
+        private Vector2 _fontScrollPosition;
 
         [MenuItem("Window/Localization Auditor")]
         private static void Open()
@@ -44,6 +46,8 @@ namespace Yxwm.LocalizationAuditor
                 _state.SceneTargetCount + " Scene, " +
                 _state.PrefabTargetCount + " Prefab)");
 
+            var fontConfigurationValid = DrawFontConfiguration();
+
             using (new EditorGUILayout.HorizontalScope())
             {
                 if (GUILayout.Button("Refresh / 刷新目标"))
@@ -53,10 +57,11 @@ namespace Yxwm.LocalizationAuditor
                     Repaint();
                 }
 
-                using (new EditorGUI.DisabledScope(_state.Targets.Count == 0))
+                using (new EditorGUI.DisabledScope(_state.Targets.Count == 0 || !fontConfigurationValid))
                 {
                     if (GUILayout.Button("Run Audit / 运行审计"))
                     {
+                        _state.SetFontMappings(_fontProfile != null ? _fontProfile.BuildMappings() : null);
                         _state.RunAudit();
                         Repaint();
                     }
@@ -105,6 +110,51 @@ namespace Yxwm.LocalizationAuditor
             }
 
             EditorGUILayout.EndScrollView();
+        }
+
+        private bool DrawFontConfiguration()
+        {
+            _fontProfile = (AuditFontProfile)EditorGUILayout.ObjectField(
+                "Font profile / 字体配置", _fontProfile, typeof(AuditFontProfile), false);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("Create profile / 新建配置"))
+                {
+                    var path = EditorUtility.SaveFilePanelInProject(
+                        "Save font profile", "AuditFontProfile", "asset", "选择字体配置保存位置");
+                    if (!string.IsNullOrEmpty(path))
+                    {
+                        // 不覆盖已有资源；创建只发生在用户明确选择保存位置之后。
+                        var profile = CreateInstance<AuditFontProfile>();
+                        AssetDatabase.CreateAsset(profile, AssetDatabase.GenerateUniqueAssetPath(path));
+                        _fontProfile = profile;
+                    }
+                }
+                using (new EditorGUI.DisabledScope(_fontProfile == null))
+                {
+                    if (GUILayout.Button("Save profile / 保存配置"))
+                        AssetDatabase.SaveAssetIfDirty(_fontProfile);
+                }
+            }
+            EditorGUILayout.HelpBox(
+                "Locale Code 必须与项目语言代码一致（例如 en、zh-Hans）；Font 选择 TMP Font Asset。未配置的语言仍为 NotVerified。修改后请重新扫描。", MessageType.Info);
+            if (_fontProfile == null) return true;
+            // SerializedObject 提供 Undo、脏标记和持久化，避免手动写入资源文件。
+            using (var serialized = new SerializedObject(_fontProfile))
+            {
+                serialized.Update();
+                _fontScrollPosition = EditorGUILayout.BeginScrollView(_fontScrollPosition, GUILayout.MaxHeight(180));
+                EditorGUILayout.PropertyField(serialized.FindProperty("_entries"),
+                    new GUIContent("Locale fonts / 语言字体列表"), true);
+                EditorGUILayout.EndScrollView();
+                serialized.ApplyModifiedProperties();
+            }
+            try { _fontProfile.BuildMappings(); return true; }
+            catch (System.InvalidOperationException exception)
+            {
+                EditorGUILayout.HelpBox(exception.Message, MessageType.Error);
+                return false;
+            }
         }
 
         private AuditIssueFilter DrawFilters()
