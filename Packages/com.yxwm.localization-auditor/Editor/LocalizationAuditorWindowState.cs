@@ -27,6 +27,7 @@ namespace Yxwm.LocalizationAuditor
 
         private readonly Func<IEnumerable<string>, AuditTargetDiscoveryResult> _discoverTargets;
         private readonly Func<AuditRequest, AuditReport> _runAudit;
+        private IReadOnlyDictionary<string, string> _fontMappings;
         private IReadOnlyList<AuditTarget> _targets =
             new ReadOnlyCollection<AuditTarget>(new List<AuditTarget>());
 
@@ -95,6 +96,12 @@ namespace Yxwm.LocalizationAuditor
             }
         }
 
+        // 复制映射，防止界面或调用者随后修改集合影响本次扫描。
+        public void SetFontMappings(IReadOnlyDictionary<string, string> mappings)
+        {
+            _fontMappings = new AuditRequest(localeFontAssetPaths: mappings).LocaleFontAssetPaths;
+        }
+
         public void RunAudit()
         {
             if (_targets.Count == 0)
@@ -108,7 +115,7 @@ namespace Yxwm.LocalizationAuditor
                 var request = new AuditRequest(
                     _targets.Select(target => target.AssetPath),
                     DefaultRuleIds,
-                    new Dictionary<string, string>(StringComparer.Ordinal));
+                    _fontMappings);
                 LastRequest = request;
                 LastReport = _runAudit(request);
                 if (LastReport == null)

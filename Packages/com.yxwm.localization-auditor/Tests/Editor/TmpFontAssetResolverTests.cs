@@ -11,6 +11,20 @@ namespace Yxwm.LocalizationAuditor.Tests
     {
         private TMP_FontAsset[] _createdFonts;
 
+        // 同名但不同的字体不能被误去重；共享引用只能访问一次。
+        [Test]
+        public void ResolveDistinguishesDifferentFontObjectsWithSameName()
+        {
+            var root = CreateFont("SameName");
+            var first = CreateFont("SameName");
+            var second = CreateFont("SameName");
+            root.fallbackFontAssetTable.Add(first);
+            root.fallbackFontAssetTable.Add(second);
+            first.fallbackFontAssetTable.Add(second);
+            var result = TmpFontAssetResolver.Resolve(root);
+            Assert.That(result.FontAssets, Is.EqualTo(new[] { root, first, second }));
+            Assert.That(result.HasFallbackCycle, Is.False);
+        }
         [SetUp]
         public void SetUp()
         {

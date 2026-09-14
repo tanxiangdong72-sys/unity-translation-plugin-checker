@@ -39,8 +39,9 @@ namespace Yxwm.LocalizationAuditor
             }
 
             var resolvedFonts = new List<TMP_FontAsset>();
-            var visitedEntityIds = new HashSet<EntityId>();
-            var visitingEntityIds = new HashSet<EntityId>();
+            // 直接按字体对象去重，兼容 Unity 6.0，避免依赖较新版本的 EntityId API。
+            var visitedFonts = new HashSet<TMP_FontAsset>();
+            var visitingFonts = new HashSet<TMP_FontAsset>();
             var hasFallbackCycle = false;
 
             Visit(rootFontAsset);
@@ -57,21 +58,20 @@ namespace Yxwm.LocalizationAuditor
                     return;
                 }
 
-                var entityId = fontAsset.GetEntityId();
-                if (visitingEntityIds.Contains(entityId))
+                if (visitingFonts.Contains(fontAsset))
                 {
                     // 当前路径再次遇到正在访问的字体，说明 fallback 形成了环。
                     hasFallbackCycle = true;
                     return;
                 }
 
-                if (!visitedEntityIds.Add(entityId))
+                if (!visitedFonts.Add(fontAsset))
                 {
                     return;
                 }
 
                 resolvedFonts.Add(fontAsset);
-                visitingEntityIds.Add(entityId);
+                visitingFonts.Add(fontAsset);
 
                 var fallbackFonts = fontAsset.fallbackFontAssetTable;
                 if (fallbackFonts != null)
@@ -82,7 +82,7 @@ namespace Yxwm.LocalizationAuditor
                     }
                 }
 
-                visitingEntityIds.Remove(entityId);
+                visitingFonts.Remove(fontAsset);
             }
         }
     }
